@@ -14,11 +14,6 @@ parser.add_argument("filename",
 	type	= str,
 	help	= "The filename of the original spectrometer data")
 
-parser.add_argument("wavelength",
-	metavar	= "nm",
-	type	= int,
-	help	= "The wavelength to display images at")
-
 parser.add_argument("dimensions",
 	metavar	= "pixel",
 	type	= int,
@@ -26,11 +21,15 @@ parser.add_argument("dimensions",
 	help	= "The dimensions of the image")
 
 parser.add_argument("-o", "--original",
-	action	= "store_true",
+	metavar	= "nm",
+	type	= int,
+        default	= None,
 	help	= "Choice to display the original image")
 
 parser.add_argument("-a", "--absorbance",
-	action	= "store_true",
+	metavar	= "nm",
+	type	= int,
+	default	= None,
 	help	= "Choice to display the aborbance image")
 
 parser.add_argument("-s", "--svd",
@@ -40,7 +39,9 @@ parser.add_argument("-s", "--svd",
 	help	= "Required for -r, -u, -w, -v, and -d.")
 
 parser.add_argument("-r", "--reverse",
-	action	= "store_true",
+	metavar	= "nm",
+	type	= int,
+	default	= None,
 	help	= """	Choice to display reverse svd image.
 			Requires -s flag to be used.
 			Required for -d.""")
@@ -60,7 +61,9 @@ parser.add_argument("-v",
 			Requires -s flag to be used.""")
 
 parser.add_argument("-d", "--difference",
-	action	= "store_true",
+	metavar	= "nm",
+	type	= int,
+	default	= None,
 	help	= """	Choice to display difference image between reverse svd image and
 			original image. Requires -s and -r flags to be used.""")
 
@@ -74,7 +77,6 @@ parser.add_argument("-x", "--versus",
 args = parser.parse_args()
 
 filename	= args.filename
-wl		= args.wavelength
 dimensions	= args.dimensions
 original	= args.original
 absorbance	= args.absorbance
@@ -93,12 +95,14 @@ data, nm = methods.get_data(filename)
 
 data = data[:(x*y)]
 
-if original:
-  name = filename + "." + str(wl) + ".ori.eps"
+if original is not None:
+  wl = int((original - nm[0]) * len(nm) / (nm[-1] - nm[0]))
+  name = filename + "." + str(original) + ".ori.eps"
   methods.show_image(methods.to2D(data, (x,y), wl), show=False, name=name, dir=filename)
 
-if absorbance:
-  name = filename + "." + str(wl) + ".abs.eps"
+if absorbance is not None:
+  wl = int((absorbance - nm[0]) * len(nm) / (nm[-1] - nm[0]))
+  name = filename + "." + str(absorbance) + ".abs.eps"
   absorbance = methods.absorbance(data, nm)
   methods.show_image(methods.to2D(absorbance, (x,y), wl), amp=True, show=False,
 			name=name, dir=filename)
@@ -106,8 +110,9 @@ if absorbance:
 if components != 0:
   U, W, Vt = linalg.svd(data, full_matrices=0)
 
-if reverse:
-  name = filename +"." + str(wl) + ".rec.eps"
+if reverse is not None:
+  wl = int((reverse - nm[0]) * len(nm) / (nm[-1] - nm[0]))
+  name = filename +"." + str(reverse) + ".rec.eps"
   reverse = methods.reverse_svd(U, W, Vt, components)
   methods.show_image(methods.to2D(reverse, (x,y), wl), show=False, name=name,
 			dir=filename)
@@ -130,7 +135,7 @@ if w:
 			highlight=components, left=0.9, show=False,
 			name=name, dir=filename)
 
-if v:
+if v: # does not work
   first = True
 
   for i in range(components):
@@ -143,8 +148,9 @@ if v:
 			name=name, dir=filename)
 
 
-if difference:
-  name = filename + "." + str(wl) + ".dif.eps"
+if difference is not None:
+  wl = int((difference - nm[0]) * len(nm) / (nm[-1] - nm[0]))
+  name = filename + "." + str(difference) + ".dif.eps"
   diff = np.subtract(reverse, data)
   methods.show_image(methods.to2D(diff, (x,y), wl), amp=True, show=False,
 			name=name, dir=filename)

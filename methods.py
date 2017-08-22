@@ -5,9 +5,20 @@ import matplotlib as mpl
 import numpy as np
 import pylab
 import os
+import pickle
 
 def get_data(filename):
-
+    """
+    for root, dirs, files in os.walk("./pickle"):
+      for file in files:
+        if file.endswith(filename + ".data.p"):
+          print(filename + ".data.p loading...")
+          os.chdir("pickle")
+          with open(filename + ".data.p", "rb") as f:
+            v1 = pickle.load(f)
+          os.chdir("..")
+          return (v1[0], v1[1])
+    """
     f1 = ""
     f2 = filename
     f3 = "_QEP010031_1.txt"
@@ -17,6 +28,8 @@ def get_data(filename):
     file = open(seq)
     row  = 0
     for i in file:
+	if row/1000.0 == int(row/1000):
+	    print str(row/1000)
         if row == 0 and "Begin Spectral Data" in i:
             row = 1
         elif row == 1:
@@ -31,8 +44,15 @@ def get_data(filename):
             data.append(ab)
             row += 1
     file.close()
-    
-    return (data, nm)
+    """    
+    v1 = (data, nm)
+
+    os.chdir("pickle")
+    with open(filename + ".data.p", "wb") as f:
+      pickle.dump(v1, f)
+    os.chdir("..")
+    """
+    return (data, nm) #should be recursive call to self???
     
 def get_column(data, wl):
     ret = []
@@ -41,6 +61,76 @@ def get_column(data, wl):
         ret.append(i[wl])
         
     return ret
+
+def square(data, y, filename=None):
+
+  if filename is not None:
+    for root, dirs, files in os.walk("./pickle"):
+      for file in files:
+        if file.endswith(filename + ".square.p"):
+          print(filename + ".square.p loading...")
+          os.chdir("pickle")
+          with open(filename + ".square.p", "rb") as f:
+            v1 = pickle.load(f)
+          os.chdir("..")
+          return v1
+  
+  x = int(len(data)/y)
+
+  #tolerance
+  t = 10
+  #cursor
+  c = 0
+  #break spots
+  breaks = []
+
+  dt = [np.mean(i) for i in data]
+
+  for i in range(y):
+    c += x
+
+    #list of corrcoef
+    cc = []
+    best = [-1,-1]
+
+    #meme code???
+    for j in range(t):
+      for k in [-1,1]:
+        v1 = t*k
+        v2 = c-x+v1
+        if v2 < 0: v2 = 0
+
+        t1 = dt[v2:c+v1]
+        t2 = dt[c+v1:c+len(t1)+v1]
+
+        t3 = np.mean(np.corrcoef(t1, t2)[0])
+
+        print(t3)
+
+        cc.append(t3)
+        if best[1] == -1 or abs(1 - t3) < best[1]:
+          best[1] = abs(1 - t3)
+          best[0] = j
+    
+    breaks.append(best[0])
+
+  temp = len(data) - 1
+  data2D = [0 for i in range(y)]
+
+  for i in reversed(range(len(breaks))):
+    data2D[i] = data[breaks[i]:temp]
+
+    temp = breaks[i]
+
+  ret = [data2D[i][:x] for i in range(y)]
+
+  if filename is not None:
+    os.chdir("pickle")
+    with open(filename + ".square.p", "wb") as f:
+      pickle.dump(ret, f)
+    os.chdir("..")
+
+  return ret
 
 def to2D(single, dim, wl):
     x = dim[0]
