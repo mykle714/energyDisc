@@ -6,7 +6,9 @@ import numpy as np
 import pylab
 import os
 
-def get_data(filename):
+def get_data(filename, cut = 0):
+    
+    print("reading file...")
 
     f1 = ""
     f2 = filename
@@ -30,9 +32,20 @@ def get_data(filename):
             msec.append(ms)
             data.append(ab)
             row += 1
+            
+        if row != 0 and row > cut:
+            break
     file.close()
     
     return (data, nm)
+
+def get_wavelength(nm, wl):
+    """returns the index of the wavelength provided"""
+    ret = 0
+    while wl > nm[ret]:
+        ret += 1
+        
+    return ret
     
 def get_column(data, wl):
     ret = []
@@ -46,7 +59,7 @@ def to2D(single, dim, wl):
     x = dim[0]
     y = dim[1]    
     if(x*y != len(single)):
-        print("dimention error")
+        print("dimension error")
         return None
     r = -1
 
@@ -58,6 +71,24 @@ def to2D(single, dim, wl):
             r+=1
         ret[r][j] = single[i][wl]
         
+    return ret
+
+def to2D2(single, x, wl):
+    r = -1
+
+    ret = [[] for i in range(int(len(single)/x)+1)]
+    
+    for i in range(0,len(single)):
+        j = i % x
+        if j == 0:
+            r+=1
+        print("r: %d, j: %d, i: %d" % (r,j,i))
+        ret[r].append(single[i][wl])
+        
+    while len(ret[r]) < len(ret[0]):
+        ret[r].append(0)
+        
+    print("x: %d, y: %d" % (len(ret[0]), len(ret)))
     return ret
     
 def show_image(image_array, colorbar=True, amp=False, vmin=None, vmax=None, show=True, name=None, dir=None):
@@ -226,4 +257,67 @@ def gradient_line(funcs, t, cmap='gist_rainbow', width=3):
     lc.set_linewidth(width)
     
     return lc
+
+dark_threshold = 15
+
+def is_dark(spec, threshold=dark_threshold):
+    return np.mean(spec) <= threshold
+
+def align_dark(data, threshold=dark_threshold, min=3):
+    """starting with first dark spectrum"""
+    print("aligning by dark spectrums...")
+    i = 0
     
+    while i < len(data) and not is_dark(data[i], threshold):
+        i+=1
+    
+    c = 0
+    while i < len(data) and is_dark(data[i], threshold):
+        i+=1
+        c+=1
+        
+    ret = []
+    j = 0
+    
+    while i < len(data):
+        ret.append([])   
+        while i < len(data) and not is_dark(data[i], threshold):
+            ret[j].append(data[i])
+            i+=1
+            
+        c = 0
+        while i < len(data) and is_dark(data[i], threshold):
+            i+=1
+            c+=1
+        j += 1
+            
+    return ret
+
+def isolate_wavelength(twoD_image, wl):
+    print("isolating single wavelength...")
+    ret = [[] for i in twoD_image]
+    
+    for i in range(len(twoD_image)):
+        for j in twoD_image[i]:
+            ret[i].append(j[wl])
+            
+    return ret
+
+def square(twoD):
+    print("squaring image...")
+    
+    twoD_image = twoD[:(len(twoD)-1)]
+    
+    ret = [[] for i in twoD_image]
+    
+    min = -1
+    
+    for i in twoD_image:
+        if min == -1 or len(i) < min:
+            min = len(i)
+            
+    for i in range(len(twoD_image)):
+        ret[i] = twoD_image[i][:min]
+        
+    print(min)
+    return ret
