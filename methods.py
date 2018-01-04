@@ -5,6 +5,7 @@ import matplotlib as mpl
 import numpy as np
 import pylab
 import os
+import pickle
 
 def get_data(filename, cut = 0):
     
@@ -19,6 +20,8 @@ def get_data(filename, cut = 0):
     file = open(seq)
     row  = 0
     for i in file:
+	if row/1000.0 == int(row/1000):
+	    print str(row/1000)
         if row == 0 and "Begin Spectral Data" in i:
             row = 1
         elif row == 1:
